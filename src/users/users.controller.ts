@@ -7,25 +7,34 @@ import {
   Delete,
   Param,
   Query,
-  NotFoundException, BadRequestException, UseInterceptors,
+  NotFoundException, BadRequestException, UseInterceptors, Session,
 } from '@nestjs/common';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { UsersService } from './users.service';
 import { Serialize, SerializeInterceptor } from '../serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
+import { AuthService } from './auth.service';
 
 @Controller('auth')
 @Serialize(UserDto)
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(private usersService: UsersService, private authService: AuthService) {}
 
   @Post('/signup')
-  async createUser(@Body() body: CreateUserDto) {
-    if (!body.email || !body.password) {
-      throw new BadRequestException('Email and password are required');
-    }
-    return await this.usersService.create(body.email, body.password);
+  async createUser(@Body() body: CreateUserDto, @Session() session: any) {
+    const user = await this.authService.signup(body.email, body.password);
+    session.userId = user.id
+    return user
+    // return this.authService.signUp(body.email, body.password);
+  }
+
+  @Post('/signin')
+  async signIn(@Body() body: CreateUserDto, @Session() session: any) {
+    const user = await this.authService.signin(body.email, body.password);
+    session.userId = user.id
+    return user
+    // return this.authService.signIn(body.email, body.password);
   }
 
   @Get('/:id')
